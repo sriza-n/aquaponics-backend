@@ -8,6 +8,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from flask import render_template
 
 
 app = Flask(__name__)
@@ -95,18 +96,24 @@ def receive_sensor_data():
     
     return jsonify({"status": "success"}), 200
 
+
+
 @app.route('/sensor-data-records', methods=['GET'])
 def get_sensor_data_records():
+    
     records = SensorData.query.all()
     data = [
-        {"date": record.date,"time":record.time,"humidity": record.humidity,
+        {"date": record.date,"time":record.time,
+            "humidity": record.humidity,
             "temperature": record.temperature,
             "waterTemperature": record.waterTemperature,
             "waterLevel": record.waterLevel,
             "phValue": record.phValue}
         for record in records
     ]
-    return jsonify(data), 200
+    # return jsonify(data), 200
+    return render_template('sensor_data.html', data=data)
+
 
 
 @app.route('/latest-sensor-data', methods=['GET'])
@@ -130,10 +137,47 @@ def get_latest_sensor_data():
         return jsonify({"error": "No sensor data available"}), 404
 
 
+# @app.route('/sensor-data-by-date', methods=['GET'])
+# def get_sensor_data_by_date():
+#     """
+#     Retrieve sensor data records for a specific date.
+#     """
+#     date_str = request.args.get('date')
+#     if not date_str:
+#         return jsonify({"error": "Date parameter is required"}), 400
+
+#     try:
+#         date = datetime.strptime(date_str, '%Y-%m-%d').date()
+#     except ValueError:
+#         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+#     records = SensorData.query.filter(SensorData.date.like(f"{date}%")).all()
+#     if records:
+#         data = [
+#             {
+#                 "date": record.date,
+#                 "time": record.time,
+#                 "humidity": record.humidity,
+#                 "temperature": record.temperature,
+#                 "waterTemperature": record.waterTemperature,
+#                 "waterLevel": record.waterLevel,
+#                 "phValue": record.phValue
+#             }
+#             for record in records
+#         ]
+#         return jsonify(data), 200
+#     else:
+#         return jsonify({"error": "No sensor data available for the specified date"}), 404
+@app.after_request
+def remove_permissions_policy_header(response):
+    response.headers.pop('Permissions-Policy', None)
+    return response
+
+
 @app.route('/sensor-data-by-date', methods=['GET'])
 def get_sensor_data_by_date():
     """
-    Retrieve sensor data records for a specific date.
+    Retrieve sensor data records for a specific date and return an HTML page with graphs.
     """
     date_str = request.args.get('date')
     if not date_str:
@@ -159,8 +203,11 @@ def get_sensor_data_by_date():
             for record in records
         ]
         return jsonify(data), 200
+        # return render_template('sensor_data.html', data=data, date=date_str)
     else:
         return jsonify({"error": "No sensor data available for the specified date"}), 404
+
+
 # # List to store sensor data
 # sensor_data_records = []
 
