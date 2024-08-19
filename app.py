@@ -343,9 +343,6 @@ def get_sensor_data_by_date():
 def control_relay():
     """
     Controls the relays by sending commands to the ESP32.
-
-    Returns:
-        tuple: A JSON response with a status message and an HTTP status code.
     """
     commands = request.json.get('commands')
     if not commands:
