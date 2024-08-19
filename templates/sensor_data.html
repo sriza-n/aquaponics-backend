@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data for {{ date }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .chart-container {
+            margin-bottom: 40px;
+        }
+        .chart-title {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .daterange-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sensor Data for {{ date }}</h1>
+        <div class="daterange-container">
+            <input type="text" id="daterange" class="form-control" style="width: 300px; display: inline-block;">
+        </div>
+        <div class="chart-container">
+            <h2 class="chart-title">Temperature</h2>
+            <div id="temperatureChart"></div>
+        </div>
+        <div class="chart-container">
+            <h2 class="chart-title">Water Temperature</h2>
+            <div id="waterTemperatureChart"></div>
+        </div>
+        <div class="chart-container">
+            <h2 class="chart-title">Water Level</h2>
+            <div id="waterLevelChart"></div>
+        </div>
+        <div class="chart-container">
+            <h2 class="chart-title">pH Value</h2>
+            <div id="phValueChart"></div>
+        </div>
+        <div class="chart-container">
+            <h2 class="chart-title">Humidity</h2>
+            <div id="HumidityChart"></div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const data = {{ data | tojson }};
+            console.log('Data:', data);
+
+            function filterDataByDateRange(data, startDate, endDate) {
+                return data.filter(record => {
+                    const recordDate = moment(record.date, 'YYYY-MM-DD');
+                    return recordDate.isBetween(startDate, endDate, null, '[]');
+                });
+            }
+
+            function filterDataByRange(data, key, min, max) {
+                return data.filter(record => record[key] >= min && record[key] <= max);
+            }
+
+            function plotCharts(filteredData) {
+                const times = filteredData.map(record => record.date);
+                const temperatureData = filteredData.map(record => record.temperature);
+                const waterTemperatureData = filteredData.map(record => record.waterTemperature);
+                const waterLevelData = filteredData.map(record => record.waterLevel);
+                const phValueData = filteredData.map(record => record.phValue);
+                const HumidityData = filteredData.map(record => record.humidity);
+
+                const layout = {
+                    margin: { t: 30, b: 70, l: 50, r: 50 },
+                    xaxis: { title: 'Time' },
+                    yaxis: { title: 'Value' }
+                };
+
+                Plotly.newPlot('temperatureChart', [{
+                    x: times,
+                    y: temperatureData,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Temperature',
+                    line: { color: 'red' }
+                }], layout);
+
+                Plotly.newPlot('waterTemperatureChart', [{
+                    x: times,
+                    y: waterTemperatureData,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Water Temperature',
+                    line: { color: 'blue' }
+                }], layout);
+
+                Plotly.newPlot('waterLevelChart', [{
+                    x: times,
+                    y: waterLevelData,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Water Level',
+                    line: { color: 'green' }
+                }], layout);
+
+                Plotly.newPlot('phValueChart', [{
+                    x: times,
+                    y: phValueData,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'pH Value',
+                    line: { color: 'purple' }
+                }], layout);
+
+                Plotly.newPlot('HumidityChart', [{
+                    x: times,
+                    y: HumidityData,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Humidity Value',
+                    line: { color: 'purple' }
+                }], layout);
+            }
+
+            $('#daterange').daterangepicker({
+                opens: 'center',
+                startDate: moment().subtract(7, 'days'),
+                endDate: moment(),
+                locale: {
+                    format: 'YYYY-MM-DD'
+                }
+            }, function(start, end, label) {
+                let filteredData = filterDataByDateRange(data, start, end);
+                filteredData = filterDataByRange(filteredData, 'temperature', 0, 100);
+                filteredData = filterDataByRange(filteredData, 'waterTemperature', 0, 100);
+                filteredData = filterDataByRange(filteredData, 'waterLevel', 0, 100);
+                filteredData = filterDataByRange(filteredData, 'phValue', 0, 14);
+                filteredData = filterDataByRange(filteredData, 'humidity', 0, 100);
+                plotCharts(filteredData);
+            });
+
+            // Initial plot with default date range and expected range
+            const initialStartDate = moment().subtract(7, 'days');
+            const initialEndDate = moment();
+            let initialFilteredData = filterDataByDateRange(data, initialStartDate, initialEndDate);
+            initialFilteredData = filterDataByRange(initialFilteredData, 'temperature', 0, 100);
+            initialFilteredData = filterDataByRange(initialFilteredData, 'waterTemperature', 0, 100);
+            initialFilteredData = filterDataByRange(initialFilteredData, 'waterLevel', 0, 100);
+            initialFilteredData = filterDataByRange(initialFilteredData, 'phValue', 0, 14);
+            initialFilteredData = filterDataByRange(initialFilteredData, 'humidity', 0, 100);
+            plotCharts(initialFilteredData);
+        });
+    </script>
+</body>
+</html>
